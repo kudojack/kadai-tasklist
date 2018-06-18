@@ -13,13 +13,22 @@ class TasklistsController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+
     public function index()
     {
-        $tasklists = Tasklist::all();
-        
-        return view('tasklists.index',[
-            'tasklists' => $tasklists,
-            ]);//
+        $data = [];
+        if (\Auth::check()) {
+            $user = \Auth::user();
+            $tasklist = $user->tasklists()->orderBy('created_at', 'desc')->paginate(10);
+
+            $data = [
+                'user' => $user,
+                'tasklists' => $tasklist,
+            ];
+            return view('tasklists.index', $data);
+        }else {
+            return view('welcome');
+        }
     }
 
     /**
@@ -45,17 +54,18 @@ class TasklistsController extends Controller
     public function store(Request $request)
     {
        $this->validate($request,  [
-        'status'=> 'required|max:10',
+        'status'=> 'required|max:225',
         'content'=> 'required|max:255',
        ]);
        
       
        $tasklist = new Tasklist;
-       $tasklist->status = $request->status;
-       $tasklist->content = $request->content;
-       $tasklist->save();
+        $request->user()->tasklists()->create([
+            'content' => $request->content,
+            'status' => $request->status,
+        ]);
 
-        return redirect('/'); //
+        return redirect('/');
     }
 
     /**
@@ -67,10 +77,14 @@ class TasklistsController extends Controller
     public function show($id)
     {
         $tasklist = Tasklist::find($id);
+        if (\Auth::id() ===$tasklist->user_id) {
 
         return view('tasklists.show', [
             'tasklist' => $tasklist,
         ]);
+        }else {
+            return redirect('/') ;}
+        
     }
 
     /**
@@ -82,14 +96,16 @@ class TasklistsController extends Controller
     public function edit($id)
     {
         $tasklist = Tasklist::find($id);
-
+  if (\Auth::id() ===$tasklist->user_id) {
         return view('tasklists.edit', [
             'tasklist' => $tasklist,
         ]);
-    }
+        }else {
+            return redirect('/') ;}
+        }
 
     /**
-     * Update the specified resource in storage.
+     *  the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
@@ -117,10 +133,11 @@ class TasklistsController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)
-    {
-        $tasklist = Tasklist::find($id);
-        $tasklist->delete();
+    { 
+        $tasklist = Tasklist::find($id); {
+            $tasklist->delete();
+        }
 
-        return redirect('/');//
+        return redirect('/');
     }
 }
